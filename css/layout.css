@@ -65,3 +65,22 @@
 }
 .col.center{ justify-content:center; }
 .col.right{ justify-content:flex-end; }
+
+/* SELLER column: bubble row and spec row should sit closer */
+#market{
+  row-gap: 16px;             /* was 22px; tightens overall vertical rhythm */
+}
+
+.market-sellers{ margin-top: 6px; }  /* was 10px */
+.market-seller-boxes{ margin-top: -4px; } /* pulls specs up slightly */
+
+.buyer-card .spec-box{ margin-top: 4px; }  /* adds a touch more separation */
+.buyer-card .pie-wrap{ margin-top: 2px; }  /* keeps pie snug under spec */
+
+.seller-card{
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px; /* same spacing as buyers (tune if you want) */
+}

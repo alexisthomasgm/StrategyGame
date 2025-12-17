@@ -3,6 +3,7 @@ import { state, pushHistory, renderTopBar, $ } from "./main.js";
 import { renderMarket } from "./market.js";
 import { updateCompetitorsForTurn } from "./competition.js";
 import { updateBuyersForTurn } from "./buyers.js";
+import { revealFeatureDemand } from "./marketEvolution.js";
 
 function unitCostFromRnD() {
   // "R&D allocation" = how ambitious your product spec is.
@@ -74,6 +75,11 @@ export function setupEndTurn() {
     pushHistory(state.turn, state.pricing.price, sales);
 
     state.turn += 1;
+    const pending = state.market?.pendingReveals || [];
+    if (pending.length) {
+    for (const k of pending) revealFeatureDemand(k);
+    state.market.pendingReveals = [];
+    }
     renderTopBar();
     renderMarket();
   });

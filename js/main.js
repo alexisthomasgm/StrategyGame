@@ -18,21 +18,29 @@ export const state = {
   },
   production: { budget: 100, comfort: 50, speed: 50 },
   history: { turns: [], price: [], sales: [] },
-  buyers: [
-  { id: "b1", name: "City Commuters", size: 120, maxPrice: 10, minComfort: 40, minSpeed: 60, focus:"speed",
-    features: { accessibility: false, wifi: false, restauration: false } },
+buyers: [
+  { id:"b1", name:"City Commuters", size:120, maxPrice:10, minComfort:40, minSpeed:60,
+    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 
-  { id: "b2", name: "Regional Operators", size: 80, maxPrice: 7, minComfort: 70, minSpeed: 45, focus:"comfort",
-    features: { accessibility: false, wifi: false, restauration: false } },
+  { id:"b2", name:"Regional Operators", size:80, maxPrice:7, minComfort:70, minSpeed:45,
+    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 
-  { id: "b3", name: "Freight & Heavy", size: 60, maxPrice: 5,  minComfort: 90, minSpeed: 30, focus:"price",
-    features: { accessibility: false, wifi: false, restauration: false } },
+  { id:"b3", name:"Freight & Heavy", size:60, maxPrice:5, minComfort:90, minSpeed:30,
+    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 ],
-  competitors: [
-    { id:"c1", bubbleId:"c1Bubble", name:"Competitor A", price: 6, supplyCapacity: 200, comfort: 75, speed: 75, showFrom: COMPETITION_START_TURN },
-    { id:"c2", bubbleId:"c2Bubble", name:"Competitor B", price: 4, supplyCapacity: 100, comfort: 100, speed: 55, showFrom: SECOND_COMPETITOR_TURN },
-    { id:"c3", bubbleId:"c3Bubble", name:"Competitor C", price: 10, supplyCapacity: 50, comfort: 120, speed: 100, showFrom: THIRD_COMPETITOR_TURN }
-    ],
+competitors: [
+  { id:"c1", bubbleId:"c1Bubble", name:"Competitor A", price:6, supplyCapacity:200, comfort:75, speed:75,
+    features:{ accessibility:false, wifi:false, restauration:false }, showFrom: COMPETITION_START_TURN },
+
+  { id:"c2", bubbleId:"c2Bubble", name:"Competitor B", price:4, supplyCapacity:100, comfort:100, speed:55,
+    features:{ accessibility:false, wifi:false, restauration:false }, showFrom: SECOND_COMPETITOR_TURN },
+],
+market: {
+  revealed: { accessibility:false, wifi:false, restauration:false },
+  revealedTurn: { accessibility:null, wifi:null, restauration:null }, // NEW
+  spawnedSegments: { accessibility:false, wifi:false, restauration:false },
+  pendingReveals: []
+},
   lastMarket: null,
 };
 

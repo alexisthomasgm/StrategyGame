@@ -1,5 +1,6 @@
 import { state, openPanel, closePanel, $ } from "./main.js";
 import { renderMarket } from "./market.js";
+import { revealFeatureDemand } from "./marketEvolution.js";
 
 /** Feature unlock switches (set true later) */
 const UNLOCK_ACCESSIBILITY = true;
@@ -13,13 +14,7 @@ function clamp(n, min, max) {
 }
 
 /**
- * Enforce constraints:
- * - nonnegative
- * - cap <= budget, spd <= budget
- * - cap + spd + featureCost <= budget
- *
- * Rule: if over budget, reduce SPEED first (simple rule),
- * then COMFORT if needed, then disable features if still needed.
+ * Enforce constraints on REAL state.production (commit-time).
  */
 function enforceProductionConstraints() {
   const p = state.production;
@@ -32,7 +27,6 @@ function enforceProductionConstraints() {
     p.features = { accessibility: false, wifi: false, restauration: false };
   }
 
-  // Clamp individual spec caps
   if (p.comfort > p.budget) p.comfort = p.budget;
   if (p.speed > p.budget) p.speed = p.budget;
 
@@ -43,7 +37,6 @@ function enforceProductionConstraints() {
 
   let total = p.comfort + p.speed + featureCost;
 
-  // If over, reduce speed then comfort
   if (total > p.budget) {
     let overflow = total - p.budget;
 
@@ -51,13 +44,11 @@ function enforceProductionConstraints() {
     p.speed -= spdCut;
     overflow -= spdCut;
 
-    const capCut = Math.min(p.comfort, overflow);
-    p.comfort -= capCut;
-    overflow -= capCut;
+    const comCut = Math.min(p.comfort, overflow);
+    p.comfort -= comCut;
+    overflow -= comCut;
 
-    // If STILL over (can happen if features push it), disable features last
     if (overflow > 0) {
-      // disable in a deterministic order
       if (p.features.restauration) { p.features.restauration = false; overflow -= FEATURE_COST; }
       if (overflow > 0 && p.features.wifi) { p.features.wifi = false; overflow -= FEATURE_COST; }
       if (overflow > 0 && p.features.accessibility) { p.features.accessibility = false; overflow -= FEATURE_COST; }
@@ -75,7 +66,6 @@ export function setupProductionUI() {
   $("btnProduction").addEventListener("click", () => {
     const p = state.production;
 
-    // Ensure features exist
     if (!p.features) {
       p.features = { accessibility: false, wifi: false, restauration: false };
     }
@@ -132,6 +122,7 @@ export function setupProductionUI() {
 
         <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
           <button class="pill" id="saveProduction">Save</button>
+          <button class="pill" id="cancelProduction" type="button">Cancel</button>
           <small>Rule: comfort + speed + features ≤ budget.</small>
         </div>
       </div>
@@ -146,7 +137,10 @@ export function setupProductionUI() {
       const remainingEl = $("prodRemaining");
       const featureCostEl = $("prodFeatureCost");
 
-      // Local working copy so "budget increases keep specs" while editing
+      // Snapshot BEFORE opening (for feature "reveal" detection on save)
+      const beforeFeatures = { ...(p.features || {}) };
+
+      // Local working copy (panel state)
       let local = {
         budget: Number(budgetEl.value) || 0,
         comfort: p.comfort,
@@ -154,22 +148,39 @@ export function setupProductionUI() {
         features: { ...p.features }
       };
 
-      function syncUI(fromWhere = "") {
+      function applyLocalOverflowRules() {
+        let fCost = calcFeatureCostLocal(local.features);
+        let total = local.comfort + local.speed + fCost;
+
+        if (total <= local.budget) return;
+
+        let overflow = total - local.budget;
+
+        const spdCut = Math.min(local.speed, overflow);
+        local.speed -= spdCut;
+        overflow -= spdCut;
+
+        const comCut = Math.min(local.comfort, overflow);
+        local.comfort -= comCut;
+        overflow -= comCut;
+
+        if (overflow > 0) {
+          if (local.features.restauration) { local.features.restauration = false; overflow -= FEATURE_COST; }
+          if (overflow > 0 && local.features.wifi) { local.features.wifi = false; overflow -= FEATURE_COST; }
+          if (overflow > 0 && local.features.accessibility) { local.features.accessibility = false; overflow -= FEATURE_COST; }
+        }
+      }
+
+      function syncUI() {
         local.budget = Number(budgetEl.value) || 0;
 
-        // Slider max depends on budget (but don't change values just because budget increased)
         capRange.max = String(local.budget);
         spdRange.max = String(local.budget);
 
-        // Read current inputs (when user edits them)
-        let cap = clamp(Number(capNum.value) || 0, 0, local.budget);
-        let spd = clamp(Number(spdNum.value) || 0, 0, local.budget);
+        local.comfort = clamp(Number(capNum.value) || 0, 0, local.budget);
+        local.speed = clamp(Number(spdNum.value) || 0, 0, local.budget);
 
-        // Update local values
-        local.comfort = cap;
-        local.speed = spd;
-
-        // Feature toggles (if present)
+        // Feature toggles
         const acc = $("featAccessibility");
         const wifi = $("featWifi");
         const rest = $("featRestauration");
@@ -177,36 +188,15 @@ export function setupProductionUI() {
         if (wifi) local.features.wifi = !!wifi.checked;
         if (rest) local.features.restauration = !!rest.checked;
 
-        // Enforce total constraint (cap+spd+features <= budget) WITHOUT resetting on budget increase.
-        // Only reduce if overflow happens.
-        let fCost = calcFeatureCostLocal(local.features);
-        let total = local.comfort + local.speed + fCost;
-        if (total > local.budget) {
-          let overflow = total - local.budget;
+        applyLocalOverflowRules();
 
-          const spdCut = Math.min(local.speed, overflow);
-          local.speed -= spdCut;
-          overflow -= spdCut;
-
-          const capCut = Math.min(local.comfort, overflow);
-          local.comfort -= capCut;
-          overflow -= capCut;
-
-          // If still over, untick features last
-          if (overflow > 0) {
-            if (local.features.restauration) { local.features.restauration = false; overflow -= FEATURE_COST; }
-            if (overflow > 0 && local.features.wifi) { local.features.wifi = false; overflow -= FEATURE_COST; }
-            if (overflow > 0 && local.features.accessibility) { local.features.accessibility = false; overflow -= FEATURE_COST; }
-          }
-        }
-
-        // Push corrected values back into inputs
+        // Push corrected values to inputs
         capNum.value = String(local.comfort);
         spdNum.value = String(local.speed);
         capRange.value = String(local.comfort);
         spdRange.value = String(local.speed);
 
-        // Push corrected feature toggles back into UI (if they got disabled due to overflow)
+        // Push corrected feature toggles (if auto-disabled)
         const acc2 = $("featAccessibility");
         const wifi2 = $("featWifi");
         const rest2 = $("featRestauration");
@@ -214,58 +204,72 @@ export function setupProductionUI() {
         if (wifi2) wifi2.checked = local.features.wifi;
         if (rest2) rest2.checked = local.features.restauration;
 
-        // Update remaining
-        fCost = calcFeatureCostLocal(local.features);
+        const fCost = calcFeatureCostLocal(local.features);
         if (featureCostEl) featureCostEl.textContent = String(fCost);
-
         remainingEl.textContent = String(local.budget - (local.comfort + local.speed + fCost));
 
-        // Live preview: update state so qualify checks update immediately
-        state.production.budget = local.budget;
-        state.production.comfort = local.comfort;
-        state.production.speed = local.speed;
-        state.production.features = { ...local.features };
-
+        // ✅ Preview only (DO NOT commit): market.js should read this if present
+        state.previewProduction = {
+          budget: local.budget,
+          comfort: local.comfort,
+          speed: local.speed,
+          features: { ...local.features }
+        };
         renderMarket();
       }
 
-      // When budget changes, DO NOT overwrite cap/spd with range defaults.
-      // Just recompute max and remaining.
-      budgetEl.addEventListener("input", () => {
-        // keep local.comfort/local.speed as-is unless now invalid
-        capNum.value = String(local.comfort);
-        spdNum.value = String(local.speed);
-        syncUI("budget");
-      });
+      // Wire events
+      budgetEl.addEventListener("input", syncUI);
+      capRange.addEventListener("input", () => { capNum.value = capRange.value; syncUI(); });
+      spdRange.addEventListener("input", () => { spdNum.value = spdRange.value; syncUI(); });
+      capNum.addEventListener("input", syncUI);
+      spdNum.addEventListener("input", syncUI);
 
-      capRange.addEventListener("input", () => { capNum.value = capRange.value; syncUI("capRange"); });
-      spdRange.addEventListener("input", () => { spdNum.value = spdRange.value; syncUI("spdRange"); });
-      capNum.addEventListener("input", () => syncUI("capNum"));
-      spdNum.addEventListener("input", () => syncUI("spdNum"));
-
-      // Feature toggles
       const acc = $("featAccessibility");
       const wifi = $("featWifi");
       const rest = $("featRestauration");
-      if (acc) acc.addEventListener("change", () => syncUI("acc"));
-      if (wifi) wifi.addEventListener("change", () => syncUI("wifi"));
-      if (rest) rest.addEventListener("change", () => syncUI("rest"));
+      if (acc) acc.addEventListener("change", syncUI);
+      if (wifi) wifi.addEventListener("change", syncUI);
+      if (rest) rest.addEventListener("change", syncUI);
 
       $("saveProduction").addEventListener("click", () => {
+        // Commit
         state.production.budget = local.budget;
         state.production.comfort = local.comfort;
         state.production.speed = local.speed;
         state.production.features = { ...local.features };
 
+        // Clear preview state
+        delete state.previewProduction;
+
+        // Enforce on committed state
         enforceProductionConstraints();
+
+        // ✅ Queue market demand reveal for NEXT turn (not immediately)
+        if (!state.market) state.market = {};
+        if (!Array.isArray(state.market.pendingReveals)) state.market.pendingReveals = [];
+
+        const after = state.production.features || {};
+        for (const k of ["accessibility", "wifi", "restauration"]) {
+        if (!beforeFeatures[k] && !!after[k]) {
+            if (!state.market.pendingReveals.includes(k)) {
+            state.market.pendingReveals.push(k);
+            }
+        }
+        }
+
         renderMarket();
         closePanel();
       });
 
-      // Initialize UI
-      capNum.value = String(local.comfort);
-      spdNum.value = String(local.speed);
-      syncUI("init");
+      $("cancelProduction").addEventListener("click", () => {
+        // Discard preview and re-render
+        delete state.previewProduction;
+        renderMarket();
+        closePanel();
+      });
+
+      syncUI();
     });
   });
 }

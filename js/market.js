@@ -7,12 +7,16 @@ const FIRM_COLORS = {
   none: "#B0B0B0"
 };
 
-function featuresToChecks(features) {
+function featuresToIcons(features) {
   const f = features || {};
-  const a = f.accessibility ? "✅" : "—";
-  const w = f.wifi ? "✅" : "—";
-  const r = f.restauration ? "✅" : "—";
-  return `${a} ${w} ${r}`;
+
+  const icons = [
+    f.accessibility ? `<img class="feat-ico" src="assets/handicap.svg" alt="Accessibility">` : "",
+    f.wifi ? `<img class="feat-ico" src="assets/wifi.svg" alt="WiFi">` : "",
+    f.restauration ? `<img class="feat-ico" src="assets/restauration.svg" alt="Restauration">` : ""
+  ].filter(Boolean);
+
+  return icons.length ? icons.join(" ") : "—";
 }
 
 function fmtMoney(n) {
@@ -22,10 +26,25 @@ function fmtMoney(n) {
   return x.toFixed(2);
 }
 
-function playerQualifies(buyer) {
-  const com = state.production.comfort;
-  const spd = state.production.speed;
-  return com >= buyer.minComfort && spd >= buyer.minSpeed;
+// Buyer requires features? seller must have them all.
+function meetsFeatureReq(reqFeatures, sellerFeatures) {
+  const req = reqFeatures || {};
+  const have = sellerFeatures || {};
+  for (const k of Object.keys(req)) {
+    if (req[k] && !have[k]) return false;
+  }
+  return true;
+}
+
+function playerQualifies(buyer, prod) {
+  const com = prod.comfort;
+  const spd = prod.speed;
+
+  const meetsSpecs = com >= buyer.minComfort && spd >= buyer.minSpeed;
+  if (!meetsSpecs) return false;
+
+  // buyer requirements, not buyer "features"
+  return meetsFeatureReq(buyer.reqFeatures, prod.features);
 }
 
 function getBuyerAllocation(buyerId) {
@@ -38,17 +57,19 @@ function renderBuyerReqBox(b) {
   const el = $(`${b.id}Req`);
   if (!el) return;
 
-  // Display only for now (no sales logic impact)
   const maxPrice = (b.maxPrice ?? b.price ?? "—");
 
   el.innerHTML = `
     <div class="spec-line"><span class="spec-label">Comfort</span><span class="spec-value">${b.minComfort}</span></div>
     <div class="spec-line"><span class="spec-label">Speed</span><span class="spec-value">${b.minSpeed}</span></div>
     <div class="spec-line">
-    <span class="spec-label">Price</span>
-    <span class="spec-value">${maxPrice === "—" ? "—" : `$${fmtMoney(maxPrice)}`}</span>
+      <span class="spec-label">Price</span>
+      <span class="spec-value">${maxPrice === "—" ? "—" : `$${fmtMoney(maxPrice)}`}</span>
     </div>
-    <div class="spec-line"><span class="spec-label">Features</span><span class="spec-value">${featuresToChecks(b.features)}</span></div>
+    <div class="spec-line">
+      <span class="spec-label">Features</span>
+      <span class="spec-value">${featuresToIcons(b.reqFeatures)}</span>
+    </div>
   `;
 }
 
@@ -60,7 +81,7 @@ function renderSellerSpecsBox(domIdPrefix, cap, spd, features, price) {
     <div class="spec-line"><span class="spec-label">Comfort</span><span class="spec-value">${cap}</span></div>
     <div class="spec-line"><span class="spec-label">Speed</span><span class="spec-value">${spd}</span></div>
     <div class="spec-line"><span class="spec-label">Price</span><span class="spec-value">$${fmtMoney(price)}</span></div>
-    <div class="spec-line"><span class="spec-label">Features</span><span class="spec-value">${featuresToChecks(features)}</span></div>
+    <div class="spec-line"><span class="spec-label">Features</span><span class="spec-value">${featuresToIcons(features)}</span></div>
   `;
 }
 
@@ -121,6 +142,9 @@ function upsertBuyerPie(canvasId, allocationsByFirm) {
 }
 
 export function renderMarket() {
+  // ✅ Use preview if production panel is open
+  const prod = state.previewProduction || state.production;
+
   // --- YOU: bubble shows SUPPLY; specs show product specs + price ---
   const youCapEl = $("youCap");
   if (youCapEl) {
@@ -129,9 +153,9 @@ export function renderMarket() {
 
   renderSellerSpecsBox(
     "you",
-    state.production.comfort,
-    state.production.speed,
-    state.production.features,
+    prod.comfort,
+    prod.speed,
+    prod.features,
     state.pricing.price
   );
 
@@ -147,14 +171,12 @@ export function renderMarket() {
 
     if (!isActive) continue;
 
-    // Bubble title + SUPPLY
     const nameEl = $(`${c.id}Name`);
     if (nameEl) nameEl.textContent = c.name;
 
     const sizeEl = $(`${c.id}Size`);
     if (sizeEl) sizeEl.textContent = `Supply: ${c.supplyCapacity ?? "—"}`;
 
-    // Specs box: Comfort / Speed / Price / Features
     renderSellerSpecsBox(
       c.id,
       c.comfort,
@@ -174,7 +196,7 @@ export function renderMarket() {
 
     const statusEl = $(`${b.id}Status`);
     if (statusEl) {
-      const qualifies = playerQualifies(b);
+      const qualifies = playerQualifies(b, prod);
       statusEl.textContent = qualifies ? "✅ You qualify" : "❌ You don’t qualify";
       statusEl.classList.toggle("ok", qualifies);
       statusEl.classList.toggle("bad", !qualifies);

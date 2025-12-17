@@ -1,19 +1,8 @@
 /**
- * Market allocation model (requirements gating + weighted split)
+ * Market allocation model (requirements gating + weighted split + feature requirements)
  *
- * buyers: [{ id, name, size, minComfort, minSpeed, focus }, ...]
- *   focus: "comfort" | "speed" | "balanced" (optional; defaults to balanced)
- *
- * offers: [{ id, name, comfort, speed }, ...] // includes player + competitors
- *
- * Returns:
- * {
- *   totalSalesByFirm: { [firmId]: number },
- *   playerSales: number,
- *   allocations: [
- *     { buyerId, qualifyingFirmIds: string[], weights: { [firmId]: number }, allocated: { [firmId]: number } }
- *   ]
- * }
+ * buyers: [{ id, name, size, minComfort, minSpeed, focus, reqFeatures }, ...]
+ * offers: [{ id, name, comfort, speed, features }, ...]
  */
 
 function clamp(n, lo, hi) {
@@ -22,9 +11,7 @@ function clamp(n, lo, hi) {
 
 // Softmax: turns scores into shares that sum to 1, without winner-take-all.
 function softmax(scores, temperature = 1.0) {
-  // lower temperature => more winner-takes-most; higher => more equal split
   const t = Math.max(0.0001, temperature);
-
   const max = Math.max(...scores);
   const exps = scores.map(s => Math.exp((s - max) / t));
   const sum = exps.reduce((a, b) => a + b, 0) || 1;
@@ -33,30 +20,62 @@ function softmax(scores, temperature = 1.0) {
 
 // Normalized advantage above requirement (0 = barely qualifies, 1+ = far above)
 function normalizedAdvantage(value, requirement) {
-  // If requirement is 0, avoid division madness
   if (requirement <= 0) return value > 0 ? 1 : 0;
-  return (value - requirement) / requirement; // 0 at threshold, grows with advantage
+  return (value - requirement) / requirement;
 }
 
-// Buyer score for an offer, based on buyer focus.
-// You can tune these weights later.
+// Buyer requires features? seller must have them all.
+function meetsFeatureReq(reqFeatures, sellerFeatures) {
+  const req = reqFeatures || {};
+  const have = sellerFeatures || {};
+  for (const k of Object.keys(req)) {
+    if (req[k] && !have[k]) return false;
+  }
+  return true;
+}
+
+// Count how many required features are demanded (for bonus calc)
+function countRequired(reqFeatures) {
+  const req = reqFeatures || {};
+  let n = 0;
+  for (const k of Object.keys(req)) if (req[k]) n++;
+  return n;
+}
+
+// Count how many features seller has among known keys
+function countSellerFeatures(features) {
+  const f = features || {};
+  let n = 0;
+  for (const k of ["accessibility", "wifi", "restauration"]) if (f[k]) n++;
+  return n;
+}
+
+// Score based on buyer focus + small feature bonus
 function scoreOfferForBuyer(buyer, offer) {
   const focus = buyer.focus || "balanced";
 
   const advComfort = normalizedAdvantage(offer.comfort, buyer.minComfort);
   const advSpeed = normalizedAdvantage(offer.speed, buyer.minSpeed);
 
-  // Only qualifying offers are scored, so advantages are >= 0 (or tiny float).
-  // Clamp to avoid runaway scores if someone gets huge stats.
   const c = clamp(advComfort, 0, 5);
   const s = clamp(advSpeed, 0, 5);
 
-  // Weighted sum. Speed-focused values speed more, etc.
-  if (focus === "speed") return 0.25 * c + 0.75 * s;
-  if (focus === "comfort") return 0.75 * c + 0.25 * s;
+  let score;
+  if (focus === "speed") score = 0.25 * c + 0.75 * s;
+  else if (focus === "comfort") score = 0.75 * c + 0.25 * s;
+  else score = 0.5 * c + 0.5 * s;
 
-  // balanced
-  return 0.5 * c + 0.5 * s;
+  // --- Feature bonuses (kept small on purpose) ---
+  // If buyer requires features, reward having them (even though it's already gated).
+  const reqCount = countRequired(buyer.reqFeatures);
+  if (reqCount > 0) score += 0.10 * reqCount; // tune (0.10 is mild)
+
+  // Optional tiny bump for "more features" (market perception).
+  // Set to 0 if you want *no* effect unless required.
+  const sellerFeatCount = countSellerFeatures(offer.features);
+  score += 0.02 * sellerFeatCount; // tiny
+
+  return score;
 }
 
 export function estimateSales({ buyers, offers, playerId = "player" }) {
@@ -66,9 +85,11 @@ export function estimateSales({ buyers, offers, playerId = "player" }) {
   for (const offer of offers) totalSalesByFirm[offer.id] = 0;
 
   for (const buyer of buyers) {
-    // 1) Hard gate: eliminate non-qualifying offers
+    // 1) Hard gate: specs + feature requirements
     const qualifying = offers.filter(o =>
-      o.comfort >= buyer.minComfort && o.speed >= buyer.minSpeed
+      o.comfort >= buyer.minComfort &&
+      o.speed >= buyer.minSpeed &&
+      meetsFeatureReq(buyer.reqFeatures, o.features)
     );
 
     if (qualifying.length === 0) {
@@ -83,9 +104,6 @@ export function estimateSales({ buyers, offers, playerId = "player" }) {
 
     // 2) Compute scores -> shares (softmax)
     const scores = qualifying.map(o => scoreOfferForBuyer(buyer, o));
-
-    // Temperature controls how "aggressive" allocation is.
-    // 0.6 => strongly favors best, but still shares; 1.0 => softer.
     const shares = softmax(scores, buyer.temperature ?? 0.7);
 
     // 3) Allocate buyer.size across firms

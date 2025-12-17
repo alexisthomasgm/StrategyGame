@@ -86,6 +86,14 @@ button.pill:active{ transform: translateY(1px); }
   text-align: center;
 }
 
+.buyer-card{
+  width: 240px;              /* matches bubble/spec width */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;                 /* <-- more space between buyer pill and spec box */
+}
+
 .token-stats{
   font-weight: 600;
   font-size: 12px;
@@ -149,10 +157,13 @@ button.pill:active{ transform: translateY(1px); }
 .pie-wrap{
   width: 120px;
   height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;   /* <-- hard center */
+  margin: 0 auto;            /* <-- center within the 240px column */
 }
 .pie-wrap canvas{
-  width: 100% !important;
-  height: 100% !important;
+  display: block;
 }
 
 .seller-slot{
@@ -173,6 +184,15 @@ button.pill:active{ transform: translateY(1px); }
   height: 86px;      /* roughly spec box height */
   border: 2px solid transparent;
   border-radius: 14px;
+}
+
+.feat-ico{
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.spec-value .feat-ico{
+  margin-left: 6px;
 }
 
 .token-title{ font-weight: 800; }

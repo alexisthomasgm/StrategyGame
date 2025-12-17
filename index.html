@@ -4,16 +4,43 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Market Game Prototype</title>
+
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/responsive.css" />
+
+  <!-- Quick background + header logo styling (move to CSS later if you want) -->
+  <style>
+    body{
+      background: url("assets/background_white.svg") center / cover no-repeat fixed;
+    }
+
+    .market-header{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 18px 0 8px;
+    }
+
+    .market-logo{
+      width: min(420px, 70vw);
+      height: auto;
+      user-select:none;
+      -webkit-user-drag:none;
+      filter: drop-shadow(0 2px 0 rgba(0,0,0,.12));
+    }
+  </style>
 </head>
 
 <body>
   <div id="app">
     <main id="market">
-      <h1 class="market-title">MARKET SCREEN</h1>
+
+      <!-- LOGO HEADER (replaces MARKET SCREEN text) -->
+      <header class="market-header" aria-label="Market">
+        <img class="market-logo" src="assets/logo.svg" alt="Market Game" />
+      </header>
 
       <!-- BUYERS ROW -->
       <section class="market-row market-buyers">
@@ -50,56 +77,44 @@
 
       <!-- SELLERS ROW -->
       <section class="market-row market-sellers">
-        <div class="seller-slot">
+        <div class="seller-card" id="c2Card">
           <div class="bubble competitor hidden" id="c2Bubble">
             <div class="token-title" id="c2Name">Competitor B</div>
             <div class="token-sub" id="c2Size"></div>
           </div>
-          <!-- placeholders start hidden (only used if you decide to show them) -->
           <div class="seller-placeholder hidden" id="c2Placeholder"></div>
+
+          <div class="seller-stack hidden" id="c2Stack">
+            <div class="spec-box" id="c2Specs"></div>
+          </div>
+          <div class="spec-placeholder hidden" id="c2SpecPlaceholder"></div>
         </div>
 
-        <div class="seller-slot">
+        <div class="seller-card" id="youCard">
           <div class="bubble seller" id="you">
             <div class="token-title">YOU</div>
             <div class="token-sub" id="youCap"></div>
           </div>
-        </div>
 
-        <div class="seller-slot">
-          <div class="bubble competitor hidden" id="c1Bubble">
-            <div class="token-title" id="c1Name">Competitor A</div>
-            <div class="token-sub" id="c1Size"></div>
-          </div>
-          <!-- placeholders start hidden (only used if you decide to show them) -->
-          <div class="seller-placeholder hidden" id="c1Placeholder"></div>
-        </div>
-      </section>
-
-      <!-- SELLER SPECS (below sellers) -->
-      <section class="market-row market-boxes market-seller-boxes">
-        <div class="seller-slot">
-          <div class="seller-stack hidden" id="c2Stack">
-            <div class="spec-box" id="c2Specs"></div>
-          </div>
-          <!-- spec placeholder starts hidden -->
-          <div class="spec-placeholder hidden" id="c2SpecPlaceholder"></div>
-        </div>
-
-        <div class="seller-slot">
           <div class="seller-stack" id="youStack">
             <div class="spec-box" id="youSpecs"></div>
           </div>
         </div>
 
-        <div class="seller-slot">
+        <div class="seller-card" id="c1Card">
+          <div class="bubble competitor hidden" id="c1Bubble">
+            <div class="token-title" id="c1Name">Competitor A</div>
+            <div class="token-sub" id="c1Size"></div>
+          </div>
+          <div class="seller-placeholder hidden" id="c1Placeholder"></div>
+
           <div class="seller-stack hidden" id="c1Stack">
             <div class="spec-box" id="c1Specs"></div>
           </div>
-          <!-- spec placeholder starts hidden -->
           <div class="spec-placeholder hidden" id="c1SpecPlaceholder"></div>
         </div>
       </section>
+
     </main>
 
     <footer id="bar">
@@ -128,6 +143,7 @@
         <div id="panelBody"></div>
       </div>
     </div>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
