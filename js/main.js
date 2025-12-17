@@ -2,6 +2,7 @@ import { setupPricingUI } from "./pricing.js";
 import { setupProductionUI } from "./production.js";
 import { setupEndTurn } from "./endTurn.js";
 import { renderMarket } from "./market.js";
+import { setupNewsUI } from "./news.js";
 
 export const COMPETITION_START_TURN = 5;
 export const SECOND_COMPETITOR_TURN = 10;
@@ -18,30 +19,32 @@ export const state = {
   },
   production: { budget: 100, comfort: 50, speed: 50 },
   history: { turns: [], price: [], sales: [] },
-buyers: [
-  { id:"b1", name:"City Commuters", size:120, maxPrice:10, minComfort:40, minSpeed:60,
-    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
+    buyers: [
+    { id:"b1", name:"City Commuters", size:120, maxPrice:10, minComfort:40, minSpeed:60,
+        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 
-  { id:"b2", name:"Regional Operators", size:80, maxPrice:7, minComfort:70, minSpeed:45,
-    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
+    { id:"b2", name:"Regional Operators", size:80, maxPrice:7, minComfort:70, minSpeed:45,
+        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 
-  { id:"b3", name:"Freight & Heavy", size:60, maxPrice:5, minComfort:90, minSpeed:30,
-    reqFeatures: { accessibility:false, wifi:false, restauration:false } },
+    { id:"b3", name:"Freight & Heavy", size:60, maxPrice:5, minComfort:90, minSpeed:30,
+        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
 ],
-competitors: [
-  { id:"c1", bubbleId:"c1Bubble", name:"Competitor A", price:6, supplyCapacity:200, comfort:75, speed:75,
-    features:{ accessibility:false, wifi:false, restauration:false }, showFrom: COMPETITION_START_TURN },
+    competitors: [
+    { id:"c1", bubbleId:"c1Bubble", name:"Competitor A", price:6, supplyCapacity:200, comfort:75, speed:75,
+        features:{ accessibility:false, wifi:false, restauration:false }, showFrom: COMPETITION_START_TURN },
 
-  { id:"c2", bubbleId:"c2Bubble", name:"Competitor B", price:4, supplyCapacity:100, comfort:100, speed:55,
-    features:{ accessibility:false, wifi:false, restauration:false }, showFrom: SECOND_COMPETITOR_TURN },
-],
-market: {
-  revealed: { accessibility:false, wifi:false, restauration:false },
-  revealedTurn: { accessibility:null, wifi:null, restauration:null }, // NEW
-  spawnedSegments: { accessibility:false, wifi:false, restauration:false },
-  pendingReveals: []
-},
-  lastMarket: null,
+    { id:"c2", bubbleId:"c2Bubble", name:"Competitor B", price:4, supplyCapacity:100, comfort:100, speed:55,
+        features:{ accessibility:false, wifi:false, restauration:false }, showFrom: SECOND_COMPETITOR_TURN },
+    ],
+    market: {
+    revealed: { accessibility:false, wifi:false, restauration:false },
+    revealedTurn: { accessibility:null, wifi:null, restauration:null }, // NEW
+    spawnedSegments: { accessibility:false, wifi:false, restauration:false },
+    pendingReveals: []
+    },
+    modifiers: { unitCostMultiplier: 1 },
+    research: { newsLog: [], seenNewsIds: [] },
+    lastMarket: null,
 };
 
 export const MAX_TURNS = 10;
@@ -100,6 +103,8 @@ function init() {
   setupPricingUI();
   setupProductionUI();
   setupEndTurn();
+
+  setupNewsUI();
 
   renderTopBar();
   renderMarket();

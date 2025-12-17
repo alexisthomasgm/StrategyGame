@@ -4,6 +4,7 @@ import { renderMarket } from "./market.js";
 import { updateCompetitorsForTurn } from "./competition.js";
 import { updateBuyersForTurn } from "./buyers.js";
 import { revealFeatureDemand } from "./marketEvolution.js";
+import { triggerNewsForTurn } from "./news.js";
 
 function unitCostFromRnD() {
   // "R&D allocation" = how ambitious your product spec is.
@@ -14,7 +15,7 @@ function unitCostFromRnD() {
   // Example: rd=0 => 1, rd=100 => 2, rd=200 => 3, etc.
   const base = 1;
   const slope = 0.01; // cost increases by 0.01 per R&D point
-  return base + rd * slope;
+  return (base + rd * slope) * (state.modifiers?.unitCostMultiplier ?? 1);
 }
 
 export function setupEndTurn() {
@@ -75,6 +76,7 @@ export function setupEndTurn() {
     pushHistory(state.turn, state.pricing.price, sales);
 
     state.turn += 1;
+    triggerNewsForTurn(state.turn);
     const pending = state.market?.pendingReveals || [];
     if (pending.length) {
     for (const k of pending) revealFeatureDemand(k);

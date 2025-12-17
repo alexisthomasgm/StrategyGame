@@ -121,6 +121,7 @@
       <div class="col left">
         <button class="pill" id="btnPricing">PRICING</button>
         <button class="pill" id="btnProduction">PRODUCTION</button>
+        <button class="pill" id="btnResearch">RESEARCH</button>
       </div>
 
       <div class="col center">
@@ -141,6 +142,17 @@
           <button class="close" id="btnClose">Close</button>
         </header>
         <div id="panelBody"></div>
+      </div>
+    </div>
+
+    <div id="newsOverlay" aria-hidden="true">
+      <div id="newsCard" role="dialog" aria-modal="true">
+        <div class="news-masthead">
+          <div class="news-title" id="newsHeadline">Breaking News</div>
+          <div class="news-sub" id="newsSubhead">Turn X</div>
+        </div>
+        <div class="news-body" id="newsBody"></div>
+        <div class="news-hint">Click anywhere to continue</div>
       </div>
     </div>
 
