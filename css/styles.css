@@ -53,9 +53,9 @@ body{
 }
 
 /* Rough placement like your sketch */
-#b1{ top: 40px; left: 60px; }
-#b2{ top: 40px; left: 50%; transform: translateX(-50%); }
-#b3{ top: 40px; right: 60px; }
+#b1{ top: 200px; left: 60px; }
+#b2{ top: 200px; left: 50%; transform: translateX(-50%); }
+#b3{ top: 200px; right: 60px; }
 #you{ bottom: calc(var(--bar-h) + 60px); left: 50%; transform: translateX(-50%); width: 260px; }
 
 /* Bottom bar */
@@ -140,3 +140,5 @@ button.pill:active{ transform: translateY(1px); }
   .pill{ min-width: 140px; }
   .bubble{ width: 180px; height: 100px; }
 }
+
+#panel canvas { width: 100%; height: 100%; }
