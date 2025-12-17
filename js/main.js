@@ -4,7 +4,11 @@ const state = {
   name: "YOUR NAME",
 
   pricing: { price: 5 },
-  rd: { spend: 100 },
+  production: {
+    budget: 100,   // production budget per turn
+    capacity: 50,  // allocation
+    speed: 50      // allocation
+    },
 
   // Track last 10 turns
   history: {
@@ -133,26 +137,104 @@ $("btnPricing").addEventListener("click", () => {
   });
 });
 
-$("btnRD").addEventListener("click", () => {
-  openPanel("R&D Decisions", `
-    <p>Choose how much to spend on R&amp;D.</p>
-    <label>R&amp;D Spend:
-      <input id="rdInput" type="number" min="0" step="10" value="${state.rd.spend}">
-    </label>
-    <button class="pill" id="saveRD" style="margin-top:12px;">Save</button>
+$("btnProduction").addEventListener("click", () => {
+  const p = state.production;
+  openPanel("Production Decisions", `
+    <div style="display:grid; gap:14px;">
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+        <label><b>Production budget (per turn):</b>
+          <input id="prodBudget" type="number" min="0" step="10" value="${p.budget}" style="width:120px;">
+        </label>
+        <div><b>Available:</b> <span id="prodRemaining">0</span></div>
+      </div>
+
+      <div style="display:grid; gap:10px;">
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label style="min-width:110px;"><b>Capacity</b></label>
+          <input id="capRange" type="range" min="0" value="${p.capacity}">
+          <input id="capNum" type="number" min="0" value="${p.capacity}" style="width:110px;">
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label style="min-width:110px;"><b>Speed</b></label>
+          <input id="spdRange" type="range" min="0" value="${p.speed}">
+          <input id="spdNum" type="number" min="0" value="${p.speed}" style="width:110px;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <button class="pill" id="saveProduction">Save</button>
+        <small>Rule: capacity + speed must be ≤ production budget.</small>
+      </div>
+    </div>
   `);
 
   queueMicrotask(() => {
-    $("saveRD").addEventListener("click", () => {
-      state.rd.spend = Number($("rdInput").value);
+    const budgetEl = $("prodBudget");
+    const capRange = $("capRange");
+    const spdRange = $("spdRange");
+    const capNum = $("capNum");
+    const spdNum = $("spdNum");
+    const remainingEl = $("prodRemaining");
+
+    function syncUI() {
+      const b = Number(budgetEl.value) || 0;
+
+      // Set slider max to budget
+      capRange.max = String(b);
+      spdRange.max = String(b);
+
+      // Read current allocations
+      let cap = Number(capNum.value) || 0;
+      let spd = Number(spdNum.value) || 0;
+
+      // Clamp to [0..budget]
+      cap = clamp(cap, 0, b);
+      spd = clamp(spd, 0, b);
+
+      // Enforce cap+spd <= budget by reducing speed
+      const sum = cap + spd;
+      if (sum > b) {
+        spd = Math.max(0, spd - (sum - b));
+      }
+
+      // Write back to both range + number inputs
+      capNum.value = String(cap);
+      spdNum.value = String(spd);
+      capRange.value = String(cap);
+      spdRange.value = String(spd);
+
+      remainingEl.textContent = String(b - (cap + spd));
+    }
+
+    // Wire events (any change re-syncs)
+    budgetEl.addEventListener("input", syncUI);
+
+    capRange.addEventListener("input", () => { capNum.value = capRange.value; syncUI(); });
+    spdRange.addEventListener("input", () => { spdNum.value = spdRange.value; syncUI(); });
+
+    capNum.addEventListener("input", syncUI);
+    spdNum.addEventListener("input", syncUI);
+
+    $("saveProduction").addEventListener("click", () => {
+      state.production.budget = Math.max(0, Number(budgetEl.value) || 0);
+      state.production.capacity = Math.max(0, Number(capNum.value) || 0);
+      state.production.speed = Math.max(0, Number(spdNum.value) || 0);
+
+      enforceProductionConstraints();
       closePanel();
     });
+
+    syncUI();
   });
 });
 
 $("btnNext").addEventListener("click", () => {
   // Resolve a turn (placeholder logic)
-  const sales = estimateSales(state.pricing.price, state.rd.spend);
+  state.money -= state.production.budget;
+
+  // Existing placeholder turn resolution
+  const sales = estimateSales(state.pricing.price, /* rdSpend */ 0);
   const revenue = sales * state.pricing.price;
 
   state.money += Math.max(0, revenue - state.rd.spend);
@@ -166,6 +248,29 @@ $("btnClose").addEventListener("click", closePanel);
 $("overlay").addEventListener("click", (e) => {
   if (e.target === $("overlay")) closePanel();
 });
+
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function enforceProductionConstraints() {
+  // Ensure allocations are non-negative
+  state.production.capacity = Math.max(0, state.production.capacity);
+  state.production.speed = Math.max(0, state.production.speed);
+
+  // Ensure allocations do not exceed budget
+  const b = state.production.budget;
+  if (state.production.capacity > b) state.production.capacity = b;
+  if (state.production.speed > b) state.production.speed = b;
+
+  // Ensure capacity + speed <= budget
+  const sum = state.production.capacity + state.production.speed;
+  if (sum > b) {
+    // Reduce speed first (arbitrary; pick a rule and stick to it)
+    const overflow = sum - b;
+    state.production.speed = Math.max(0, state.production.speed - overflow);
+  }
+}
 
 // Seed history so chart isn't empty on first open
 pushHistory(0, state.pricing.price, 0);
