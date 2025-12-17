@@ -1,5 +1,8 @@
 import { state, $ } from "./main.js";
 
+const FUZZY_PRICE_SLACK = 0.20; // must match estimateSales.js
+const FUZZY_SPEC_SLACK  = 0.12; // must match estimateSales.js
+
 const FIRM_COLORS = {
   player: "#4A90E2",
   c1: "#E94E77",
@@ -53,6 +56,33 @@ function getBuyerAllocation(buyerId) {
   const lm = state.lastMarket;
   if (!lm || !lm.allocations) return null;
   return lm.allocations.find(a => a.buyerId === buyerId) || null;
+}
+
+function withinSpecSlack(value, requirement, slackFrac) {
+  if (requirement <= 0) return true;
+  return value >= requirement * (1 - slackFrac);
+}
+
+function withinPriceSlack(price, maxPrice, slackFrac) {
+  if (maxPrice <= 0) return false;
+  return price <= maxPrice * (1 + slackFrac);
+}
+
+function playerAlmostQualifies(buyer, prod) {
+  const price = state.pricing.price;
+  const com = prod.comfort;
+  const spd = prod.speed;
+
+  // Keep features HARD (otherwise "requirements" lose meaning)
+  if (!meetsFeatureReq(buyer.reqFeatures, prod.features)) return false;
+
+  // Near-miss on price/specs allowed
+  if (!withinPriceSlack(price, buyer.maxPrice, FUZZY_PRICE_SLACK)) return false;
+  if (!withinSpecSlack(com, buyer.minComfort, FUZZY_SPEC_SLACK)) return false;
+  if (!withinSpecSlack(spd, buyer.minSpeed, FUZZY_SPEC_SLACK)) return false;
+
+  // But not already fully qualified
+  return !playerQualifies(buyer, prod);
 }
 
 function renderBuyerReqBox(b) {
@@ -199,9 +229,17 @@ export function renderMarket() {
     const statusEl = $(`${b.id}Status`);
     if (statusEl) {
       const qualifies = playerQualifies(b, prod);
-      statusEl.textContent = qualifies ? "✅ You qualify" : "❌ You don’t qualify";
+      const almost = !qualifies && playerAlmostQualifies(b, prod);
+
+      statusEl.textContent = qualifies
+        ? "✅ You qualify"
+        : almost
+          ? "🟠 You almost qualify"
+          : "❌ You don’t qualify";
+
       statusEl.classList.toggle("ok", qualifies);
-      statusEl.classList.toggle("bad", !qualifies);
+      statusEl.classList.toggle("warn", almost);
+      statusEl.classList.toggle("bad", !qualifies && !almost);
     }
 
     renderBuyerReqBox(b);

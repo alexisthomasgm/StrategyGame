@@ -31,17 +31,31 @@ export function setupEndTurn() {
     updateBuyersForTurn();
 
     // Offers in market (you + competitors)
+    const playerFeatures = state.production.features || { accessibility:false, wifi:false, restauration:false };
+
     const offers = [
       {
         id: "player",
-        name: "You",
+        name: state.name || "You",
+        price: state.pricing.price,
         comfort: state.production.comfort,
-        speed: state.production.speed
+        speed: state.production.speed,
+        features: playerFeatures,
+        supplyCapacity: state.pricing.supplyCapacity
       },
       ...state.competitors
         .filter(c => state.turn >= c.showFrom)
-        .map(c => ({ id: c.id, name: c.name, comfort: c.comfort, speed: c.speed }))
+        .map(c => ({
+          id: c.id,
+          name: c.name,
+          price: c.price,
+          comfort: c.comfort,
+          speed: c.speed,
+          features: c.features || { accessibility:false, wifi:false, restauration:false },
+          supplyCapacity: c.supplyCapacity
+        }))
     ];
+
 
     const result = estimateSales({
       buyers: state.buyers,

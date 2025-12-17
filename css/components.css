@@ -106,9 +106,6 @@ button.pill:active{ transform: translateY(1px); }
   font-size: 12px;
 }
 
-.token-status.ok { color: #0a7a0a; }     /* green-ish */
-.token-status.bad { color: #b00020; }    /* red-ish */
-
 .token-chart{
   width: 90px;
   height: 60px;
@@ -258,6 +255,12 @@ button.pill:active{ transform: translateY(1px); }
   user-select: none;
   -webkit-user-drag: none;
   filter: drop-shadow(0 1px 0 rgba(0,0,0,.15));
+}
+
+.token-status.ok { color: #0a7a0a; }     /* green-ish */
+.token-status.bad { color: #b00020; }    /* red-ish */
+.token-status.warn{
+  color: #d38e20; /* orange */
 }
 
 /* RESEARCH PANEL CONTENT */
