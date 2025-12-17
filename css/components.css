@@ -251,6 +251,15 @@ button.pill:active{ transform: translateY(1px); }
   padding-top: 10px;
 }
 
+.player-logo{
+  height: 60px;        /* tweak: 24–32px sweet spot */
+  width: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.15));
+}
+
 /* RESEARCH PANEL CONTENT */
 .research-wrap{ display:flex; flex-direction:column; gap:10px; }
 .research-title{ font-weight: 800; font-size: 18px; }

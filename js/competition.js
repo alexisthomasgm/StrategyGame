@@ -9,6 +9,30 @@ const IMPROVE_FOCUS_MIN = 2;
 const IMPROVE_FOCUS_MAX = 5;
 const IMPROVE_OFF_MIN = 0;
 const IMPROVE_OFF_MAX = 2;
+const FEATURE__CONSTANT_COST = 100; // keep consistent with production.js
+
+// Feature adoption "cost" (tradeoffs)
+const FEATURE_COST = {
+  accessibility: { comfort: 2, speed: 1 },
+  wifi:          { comfort: 1, speed: 2 },
+  restauration:  { comfort: 3, speed: 3 }
+};
+
+// How much the competitor *cares* about losing a point of its focus vs off-stat
+// Larger = more reluctant to sacrifice that stat.
+const STRATEGY_STAT_PENALTY = {
+  comfort: { comfort: 1.6, speed: 1.0 },
+  speed:   { comfort: 1.0, speed: 1.6 }
+};
+
+// Strategy-flavored feature preference multipliers (optional but makes it feel “human”)
+const STRATEGY_FEATURE_BIAS = {
+  comfort: { accessibility: 1.1, wifi: 0.9, restauration: 1.25 },
+  speed:   { accessibility: 1.0, wifi: 1.2, restauration: 0.95 }
+};
+
+// Minimum “net gain” required before adopting (in demand points)
+const FEATURE_ADOPT_NET_THRESHOLD = 35;
 
 const STRATEGY = {
   c1: { focus: "comfort" },
@@ -20,7 +44,13 @@ function randInt(min, max) {
 }
 
 function unitCostFor(c) {
-  const rd = (c.comfort || 0) + (c.speed || 0);
+  const feats = c.features || {};
+  const featureRd =
+    (feats.accessibility ? FEATURE__CONSTANT_COST : 0) +
+    (feats.wifi ? FEATURE__CONSTANT_COST : 0) +
+    (feats.restauration ? FEATURE__CONSTANT_COST : 0);
+
+  const rd = (c.comfort || 0) + (c.speed || 0) + featureRd;
   return BASE_UNIT_COST + rd * COST_SLOPE;
 }
 
@@ -32,14 +62,14 @@ function roundToStep(x, step) {
   return Math.ceil(x / step) * step;
 }
 
-function unlockedDemandIfAdopt(c, featureKey) {
+function demandUnlockedByConfig(config) {
   let total = 0;
 
   for (const b of state.buyers) {
-    if (c.comfort < b.minComfort || c.speed < b.minSpeed) continue;
+    if (config.comfort < b.minComfort || config.speed < b.minSpeed) continue;
 
     const req = b.reqFeatures || {};
-    const have = { ...(c.features || {}), [featureKey]: true };
+    const have = config.features || {};
 
     let ok = true;
     for (const k of Object.keys(req)) {
@@ -52,25 +82,45 @@ function unlockedDemandIfAdopt(c, featureKey) {
   return total;
 }
 
-function unlockedDemandNow(c) {
-  let total = 0;
+function shouldAdoptFeature(c, stratFocus, featureKey) {
+  const nowDemand = demandUnlockedByConfig({
+    comfort: c.comfort || 0,
+    speed: c.speed || 0,
+    features: c.features || {}
+  });
 
-  for (const b of state.buyers) {
-    if (c.comfort < b.minComfort || c.speed < b.minSpeed) continue;
+  const { sim, cost } = simulateAdoptWithCost(c, featureKey);
+  const withDemand = demandUnlockedByConfig(sim);
 
-    const req = b.reqFeatures || {};
-    const have = c.features || {};
+  const rawGain = withDemand - nowDemand;
+  if (rawGain <= 0) return false;
 
-    let ok = true;
-    for (const k of Object.keys(req)) {
-      if (req[k] && !have[k]) { ok = false; break; }
-    }
-    if (!ok) continue;
+  // Strategy bias: some features “feel right” for some competitors
+  const bias = (STRATEGY_FEATURE_BIAS[stratFocus]?.[featureKey] ?? 1.0);
 
-    total += b.size;
-  }
+  // Stat sacrifice penalty (strategy-specific)
+  const penW = STRATEGY_STAT_PENALTY[stratFocus] || { comfort: 1.0, speed: 1.0 };
+  const statPenalty =
+    (cost.comfort * penW.comfort) +
+    (cost.speed   * penW.speed);
 
-  return total;
+  // Net score in "demand points"
+  const net = rawGain * bias - statPenalty;
+
+  return net >= FEATURE_ADOPT_NET_THRESHOLD;
+}
+
+function simulateAdoptWithCost(c, featureKey) {
+  const cost = FEATURE_COST[featureKey] || { comfort: 0, speed: 0 };
+
+  // Simulate post-adoption stats (cost paid immediately)
+  const sim = {
+    comfort: Math.max(0, (c.comfort || 0) - cost.comfort),
+    speed:   Math.max(0, (c.speed || 0) - cost.speed),
+    features: { ...(c.features || {}), [featureKey]: true }
+  };
+
+  return { sim, cost };
 }
 
 function canCompetitorReactToFeature(featureKey) {
@@ -98,7 +148,8 @@ export function updateCompetitorsForTurn() {
     if (!c.features) c.features = { accessibility:false, wifi:false, restauration:false };
 
     // 1) Improve product slightly each turn
-    const focusDelta = randInt(IMPROVE_FOCUS_MIN, IMPROVE_FOCUS_MAX);
+    const accel = 1 + Math.max(0, state.turn - c.showFrom) * 0.03;
+    const focusDelta = Math.round(randInt(IMPROVE_FOCUS_MIN, IMPROVE_FOCUS_MAX) * accel);
     const offDelta = randInt(IMPROVE_OFF_MIN, IMPROVE_OFF_MAX);
 
     if (strat.focus === "comfort") {
@@ -114,13 +165,14 @@ export function updateCompetitorsForTurn() {
       if (!canCompetitorReactToFeature(featureKey)) continue;
       if (c.features[featureKey]) continue;
 
-      const now = unlockedDemandNow(c);
-      const withIt = unlockedDemandIfAdopt(c, featureKey);
+    if (shouldAdoptFeature(c, strat.focus, featureKey)) {
+      // Apply feature AND the cost (tradeoff)
+      const { cost } = simulateAdoptWithCost(c, featureKey);
 
-      // adopt if it unlocks meaningful demand
-      if (withIt - now >= 40) {
-        c.features[featureKey] = true;
-      }
+      c.features[featureKey] = true;
+      c.comfort = Math.max(0, (c.comfort || 0) - cost.comfort);
+      c.speed   = Math.max(0, (c.speed   || 0) - cost.speed);
+    }
     }
 
     // 2) Pricing: maintain >= 30% margin

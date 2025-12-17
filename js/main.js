@@ -13,29 +13,62 @@ export const state = {
   turn: 1,
   money: 10000,
   name: "YOUR NAME",
-  pricing: {
-    price: 5,
-    supplyCapacity: 100  // NEW: starts at 100, +100 per upgrade
-  },
-  production: { budget: 100, comfort: 50, speed: 50 },
+  pricing: { price: 5.8, supplyCapacity: 200 },
+  production: { budget: 140, comfort: 65, speed: 70 },
   history: { turns: [], price: [], sales: [] },
-    buyers: [
-    { id:"b1", name:"City Commuters", size:120, maxPrice:10, minComfort:40, minSpeed:60,
-        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
-
-    { id:"b2", name:"Regional Operators", size:80, maxPrice:7, minComfort:70, minSpeed:45,
-        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
-
-    { id:"b3", name:"Freight & Heavy", size:60, maxPrice:5, minComfort:90, minSpeed:30,
-        reqFeatures: { accessibility:false, wifi:false, restauration:false } },
+buyers: [
+  {
+    id:"b1",
+    name:"Daily Commuters",
+    size:160,          // biggest segment
+    maxPrice:6.5,      // price sensitive
+    minComfort:35,
+    minSpeed:45,
+    reqFeatures: { accessibility:false, wifi:false, restauration:false }
+  },
+  {
+    id:"b2",
+    name:"Intercity High-Speed",
+    size:95,
+    maxPrice:11.5,     // higher willingness to pay
+    minComfort:70,
+    minSpeed:85,       // speed is the product
+    reqFeatures: { accessibility:false, wifi:false, restauration:false }
+  },
+  {
+    id:"b3",
+    name:"Low-Cost Leisure",
+    size:120,
+    maxPrice:5.0,      // very price sensitive
+    minComfort:45,
+    minSpeed:60,
+    reqFeatures: { accessibility:false, wifi:false, restauration:false }
+  }
 ],
-    competitors: [
-    { id:"c1", bubbleId:"c1Bubble", name:"Competitor A", price:6, supplyCapacity:200, comfort:75, speed:75,
-        features:{ accessibility:false, wifi:false, restauration:false }, showFrom: COMPETITION_START_TURN },
-
-    { id:"c2", bubbleId:"c2Bubble", name:"Competitor B", price:4, supplyCapacity:100, comfort:100, speed:55,
-        features:{ accessibility:false, wifi:false, restauration:false }, showFrom: SECOND_COMPETITOR_TURN },
-    ],
+competitors: [
+  {
+    id:"c1",
+    bubbleId:"c1Bubble",
+    name:"Trenitalia France",
+    price:6.8,
+    supplyCapacity:180,
+    comfort:78,
+    speed:88,
+    features:{ accessibility:false, wifi:false, restauration:false },
+    showFrom: COMPETITION_START_TURN
+  },
+  {
+    id:"c2",
+    bubbleId:"c2Bubble",
+    name:"Ouigo",
+    price:4.2,
+    supplyCapacity:260,
+    comfort:55,
+    speed:70,
+    features:{ accessibility:false, wifi:false, restauration:false },
+    showFrom: SECOND_COMPETITOR_TURN
+  },
+],
     market: {
     revealed: { accessibility:false, wifi:false, restauration:false },
     revealedTurn: { accessibility:null, wifi:null, restauration:null }, // NEW
@@ -56,7 +89,6 @@ export function renderTopBar() {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(state.money);
-  $("playerName").textContent = state.name;
   $("money").textContent = `$ ${moneyRounded} | Turn ${state.turn}`;
 }
 

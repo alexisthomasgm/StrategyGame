@@ -7,10 +7,10 @@ export function revealFeatureDemand(featureKey) {
   // ✅ Decide which buyer segments start requiring the feature
   // You can tweak these mappings freely.
   const REQUIRE_MAP = {
-    accessibility: ["b1", "b2"],      // 2 of 3 start requiring it
-    wifi:          ["b1"],            // example
-    restauration:  ["b2"]             // example
-  };
+    accessibility: ["b1", "b2"],   // Daily Commuters + High-Speed Intercity
+    wifi:          ["b2", "b3"],   // High-Speed Intercity + Low-Cost Leisure
+    restauration:  ["b2"]          // High-Speed Intercity only
+};
 
   const ids = REQUIRE_MAP[featureKey] || [];
   for (const b of state.buyers) {

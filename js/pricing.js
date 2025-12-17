@@ -4,12 +4,25 @@ import { renderMarket } from "./market.js";
 const CAPACITY_STEP = 100;
 const CAPACITY_STEP_COST = 500;
 
-// Must match your endTurn unit cost logic
 const UNIT_COST_BASE = 1;
 const UNIT_COST_SLOPE = 0.01;
+const FEATURE_COST = 100; // must match production.js
 
 function estimateUnitCost() {
-  const rd = (state.production.comfort || 0) + (state.production.speed || 0);
+  // IMPORTANT: use preview values if player is in Production panel
+  const p = state.previewProduction || state.production;
+
+  const feats = p.features || {};
+  const featureRd =
+    (feats.accessibility ? FEATURE_COST : 0) +
+    (feats.wifi ? FEATURE_COST : 0) +
+    (feats.restauration ? FEATURE_COST : 0);
+
+  const rd =
+    (p.comfort || 0) +
+    (p.speed || 0) +
+    featureRd;
+
   return UNIT_COST_BASE + rd * UNIT_COST_SLOPE;
 }
 
