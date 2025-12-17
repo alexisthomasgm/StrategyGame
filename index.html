@@ -4,148 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Market Game Prototype</title>
-  <style>
-    :root{
-      --bar-h: 140px;
-      --bg: #cfe2f3;
-      --bubble: #d9d2e9;
-      --stroke: #111;
-    }
-
-    *{ box-sizing: border-box; }
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-    }
-
-    /* Whole app */
-    #app{
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Main market screen takes everything above the bar */
-    #market{
-      flex: 1;
-      padding: 24px;
-      padding-bottom: calc(var(--bar-h) + 24px); /* so content never hides under bar */
-      position: relative;
-    }
-
-    .market-title{
-      text-align:center;
-      font-weight:700;
-      letter-spacing: .06em;
-      margin: 0 0 18px 0;
-    }
-
-    /* Simple “bubbles” */
-    .bubble{
-      width: 220px;
-      height: 120px;
-      background: var(--bubble);
-      border: 2px solid var(--stroke);
-      border-radius: 999px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:700;
-      position:absolute;
-    }
-
-    /* Place bubbles roughly like your sketch */
-    #b1{ top: 40px; left: 60px; }
-    #b2{ top: 40px; left: 50%; transform: translateX(-50%); }
-    #b3{ top: 40px; right: 60px; }
-    #you{ bottom: calc(var(--bar-h) + 60px); left: 50%; transform: translateX(-50%); width: 260px; }
-
-    /* Bottom bar */
-    #bar{
-      height: var(--bar-h);
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      background: rgba(207,226,243,.98);
-      border-top: 3px solid var(--stroke);
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px;
-      padding: 16px 20px;
-      align-items: center;
-    }
-
-    .col{
-      display:flex;
-      gap: 14px;
-      align-items:center;
-    }
-    .col.center{ justify-content:center; }
-    .col.right{ justify-content:flex-end; }
-
-    .pill{
-      min-width: 160px;
-      padding: 14px 18px;
-      border-radius: 999px;
-      border: 2px solid var(--stroke);
-      background: var(--bubble);
-      font-weight: 700;
-      text-align:center;
-      user-select:none;
-    }
-
-    button.pill{
-      cursor: pointer;
-    }
-    button.pill:active{
-      transform: translateY(1px);
-    }
-
-    /* Modal / panel */
-    #overlay{
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.35);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-    }
-    #overlay.open{ display:flex; }
-
-    #panel{
-      width: min(720px, 100%);
-      background: white;
-      border: 2px solid var(--stroke);
-      border-radius: 18px;
-      padding: 18px;
-    }
-    #panel header{
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    #panel h2{ margin:0; font-size: 18px; }
-    .close{
-      border-radius: 12px;
-      border: 2px solid var(--stroke);
-      background: #fff;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    /* Responsive: shrink bar height on small screens */
-    @media (max-width: 700px){
-      :root{ --bar-h: 170px; }
-      #bar{ grid-template-columns: 1fr; }
-      .col{ justify-content: center; }
-      .pill{ min-width: 140px; }
-      .bubble{ width: 180px; height: 100px; }
-    }
-  </style>
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 
 <body>
@@ -153,25 +12,23 @@
     <main id="market">
       <h1 class="market-title">MARKET SCREEN</h1>
 
-      <div class="bubble" id="b1">BUYER #1</div>
-      <div class="bubble" id="b2">BUYER #2</div>
-      <div class="bubble" id="b3">BUYER #3</div>
-      <div class="bubble" id="you">YOU</div>
+      <!-- Placeholders now: div tokens. Later: swap inner content to <img> -->
+      <div class="token bubble" id="b1" data-entity="buyer">BUYER #1</div>
+      <div class="token bubble" id="b2" data-entity="buyer">BUYER #2</div>
+      <div class="token bubble" id="b3" data-entity="buyer">BUYER #3</div>
+      <div class="token bubble" id="you" data-entity="player">YOU</div>
     </main>
 
     <footer id="bar">
-      <!-- Left: decisions -->
       <div class="col left">
         <button class="pill" id="btnPricing">PRICING</button>
         <button class="pill" id="btnRD">R&amp;D</button>
       </div>
 
-      <!-- Center: name -->
       <div class="col center">
         <div class="pill" id="playerName">YOUR NAME</div>
       </div>
 
-      <!-- Right: money + next turn -->
       <div class="col right">
         <div class="pill" id="money">$ 1000</div>
         <button class="pill" id="btnNext">NEXT TURN</button>
@@ -185,87 +42,11 @@
           <h2 id="panelTitle">Panel</h2>
           <button class="close" id="btnClose">Close</button>
         </header>
-        <div id="panelBody">
-          <!-- swap content here -->
-        </div>
+        <div id="panelBody"></div>
       </div>
     </div>
   </div>
 
-  <script>
-    // Tiny “engine” state
-    const state = {
-      turn: 1,
-      money: 1000,
-      name: "YOUR NAME",
-      pricing: { price: 5 },
-      rd: { spend: 100 },
-    };
-
-    const $ = (id) => document.getElementById(id);
-
-    function render() {
-      $("playerName").textContent = state.name;
-      $("money").textContent = `$ ${state.money}  |  Turn ${state.turn}`;
-    }
-
-    function openPanel(title, html) {
-      $("panelTitle").textContent = title;
-      $("panelBody").innerHTML = html;
-      $("overlay").classList.add("open");
-      $("overlay").setAttribute("aria-hidden", "false");
-    }
-
-    function closePanel() {
-      $("overlay").classList.remove("open");
-      $("overlay").setAttribute("aria-hidden", "true");
-    }
-
-    $("btnPricing").addEventListener("click", () => {
-      openPanel("Pricing Decisions", `
-        <p>Set your price for next turn.</p>
-        <label>Price:
-          <input id="priceInput" type="number" min="1" step="1" value="${state.pricing.price}">
-        </label>
-        <button class="pill" id="savePrice" style="margin-top:12px;">Save</button>
-      `);
-
-      setTimeout(() => {
-        $("savePrice").addEventListener("click", () => {
-          state.pricing.price = Number($("priceInput").value);
-          closePanel();
-        });
-      }, 0);
-    });
-
-    $("btnRD").addEventListener("click", () => {
-      openPanel("R&D Decisions", `
-        <p>Choose how much to spend on R&amp;D.</p>
-        <label>R&amp;D Spend:
-          <input id="rdInput" type="number" min="0" step="10" value="${state.rd.spend}">
-        </label>
-        <button class="pill" id="saveRD" style="margin-top:12px;">Save</button>
-      `);
-
-      setTimeout(() => {
-        $("saveRD").addEventListener("click", () => {
-          state.rd.spend = Number($("rdInput").value);
-          closePanel();
-        });
-      }, 0);
-    });
-
-    $("btnNext").addEventListener("click", () => {
-      // placeholder “turn resolution”
-      state.turn += 1;
-      state.money += Math.max(0, (state.pricing.price * 50) - state.rd.spend);
-      render();
-    });
-
-    $("btnClose").addEventListener("click", closePanel);
-    $("overlay").addEventListener("click", (e) => { if (e.target === $("overlay")) closePanel(); });
-
-    render();
-  </script>
+  <script src="js/main.js"></script>
 </body>
 </html>
