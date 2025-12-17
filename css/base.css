@@ -1,0 +1,14 @@
+:root{
+  --bar-h: 140px;
+  --bg: #cfe2f3;
+  --bubble: #d9d2e9;
+  --stroke: #111;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+}

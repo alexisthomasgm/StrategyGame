@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Market Game Prototype</title>
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
 </head>
 
 <body>
@@ -13,10 +16,44 @@
       <h1 class="market-title">MARKET SCREEN</h1>
 
       <!-- Placeholders now: div tokens. Later: swap inner content to <img> -->
-      <div class="token bubble" id="b1" data-entity="buyer">BUYER #1</div>
-      <div class="token bubble" id="b2" data-entity="buyer">BUYER #2</div>
-      <div class="token bubble" id="b3" data-entity="buyer">BUYER #3</div>
+      <div class="token bubble buyer" id="b1">
+        <div class="token-title">BUYER #1</div>
+        <div class="token-stats" id="b1Stats"></div>
+        <div class="token-status" id="b1Status"></div>
+        <div class="token-chart">
+          <canvas id="b1Pie"></canvas>
+        </div>
+      </div>
+
+      <div class="token bubble buyer" id="b2">
+        <div class="token-title">BUYER #2</div>
+        <div class="token-stats" id="b2Stats"></div>
+        <div class="token-status" id="b2Status"></div>
+        <div class="token-chart">
+          <canvas id="b2Pie"></canvas>
+        </div>
+      </div>
+
+      <div class="token bubble buyer" id="b3">
+        <div class="token-title">BUYER #3</div>
+        <div class="token-stats" id="b3Stats"></div>
+        <div class="token-status" id="b3Status"></div>
+        <div class="token-chart">
+          <canvas id="b3Pie"></canvas>
+        </div>
+      </div>
+
       <div class="token bubble" id="you" data-entity="player">YOU</div>
+
+      <div class="token bubble competitor hidden" id="c1Bubble">
+        <div class="token-title" id="c1Name">Competitor</div>
+        <div class="token-stats" id="c1Stats"></div>
+      </div>
+
+      <div class="token bubble competitor hidden" id="c2Bubble">
+        <div class="token-title" id="c2Name">Competitor</div>
+        <div class="token-stats" id="c2Stats"></div>
+      </div>
     </main>
 
     <footer id="bar">
@@ -48,6 +85,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="js/main.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

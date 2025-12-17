@@ -1,0 +1,9 @@
+@media (max-width: 700px){
+  :root{ --bar-h: 170px; }
+
+  #bar{ grid-template-columns: 1fr; }
+  .col{ justify-content: center; }
+
+  .pill{ min-width: 140px; }
+  .bubble{ width: 180px; height: 100px; }
+}
