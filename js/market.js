@@ -36,14 +36,13 @@ function meetsFeatureReq(reqFeatures, sellerFeatures) {
   return true;
 }
 
-function playerQualifies(buyer, prod) {
+function playerQualifies(buyer, prod, price) {
   const com = prod.comfort;
   const spd = prod.speed;
 
-  const meetsSpecs = com >= buyer.minComfort && spd >= buyer.minSpeed;
-  if (!meetsSpecs) return false;
+  if (com < buyer.minComfort || spd < buyer.minSpeed) return false;
+  if (price > buyer.maxPrice) return false;
 
-  // buyer requirements, not buyer "features"
   return meetsFeatureReq(buyer.reqFeatures, prod.features);
 }
 
@@ -196,7 +195,8 @@ export function renderMarket() {
 
     const statusEl = $(`${b.id}Status`);
     if (statusEl) {
-      const qualifies = playerQualifies(b, prod);
+      const playerPrice = state.pricing.price;
+      playerQualifies(buyer, production, playerPrice);
       statusEl.textContent = qualifies ? "✅ You qualify" : "❌ You don’t qualify";
       statusEl.classList.toggle("ok", qualifies);
       statusEl.classList.toggle("bad", !qualifies);

@@ -87,6 +87,7 @@ export function estimateSales({ buyers, offers, playerId = "player" }) {
   for (const buyer of buyers) {
     // 1) Hard gate: specs + feature requirements
     const qualifying = offers.filter(o =>
+      o.price <= buyer.maxPrice &&
       o.comfort >= buyer.minComfort &&
       o.speed >= buyer.minSpeed &&
       meetsFeatureReq(buyer.reqFeatures, o.features)

@@ -20,8 +20,8 @@ buyers: [
   {
     id:"b1",
     name:"Daily Commuters",
-    size:160,          // biggest segment
-    maxPrice:6.5,      // price sensitive
+    size:250,          // biggest segment
+    maxPrice:5.0,      // price sensitive
     minComfort:35,
     minSpeed:45,
     reqFeatures: { accessibility:false, wifi:false, restauration:false }
@@ -39,9 +39,9 @@ buyers: [
     id:"b3",
     name:"Low-Cost Leisure",
     size:120,
-    maxPrice:5.0,      // very price sensitive
-    minComfort:45,
-    minSpeed:60,
+    maxPrice:6.5,      // very price sensitive
+    minComfort:60,
+    minSpeed:45,
     reqFeatures: { accessibility:false, wifi:false, restauration:false }
   }
 ],
